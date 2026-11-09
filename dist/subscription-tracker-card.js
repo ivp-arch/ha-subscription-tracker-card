@@ -6,14 +6,17 @@ const css = LitElement.prototype.css;
 
 const CARD_VERSION = "0.1.0";
 const THEMES = ["auto", "orbit"];
+const PALETTE_SIZE = 6;
 
-// Generic icons per category (no brands). Drawn here, no external resources.
+// Generic glyphs per category (no brands), same drawings as the Orbit mockup.
+// Drawn here, no external resources.
 const ICONS = {
-  video: html`<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 9.2v5.6l4.8-2.8z" fill="currentColor"/></svg>`,
-  audio: html`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10v4M9 7v10M13 4v16M17 8v8M21 11v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
-  other: html`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`,
-  paused: html`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+  video: html`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"></rect><polygon points="10 9 15 12 10 15 10 9"></polygon></svg>`,
+  audio: html`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="10" x2="4" y2="14"></line><line x1="8" y1="7" x2="8" y2="17"></line><line x1="12" y1="4" x2="12" y2="20"></line><line x1="16" y1="8" x2="16" y2="16"></line><line x1="20" y1="11" x2="20" y2="13"></line></svg>`,
+  other: html`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4z"></path><path d="M3 7v10l9 4 9-4V7"></path><line x1="12" y1="11" x2="12" y2="21"></line></svg>`,
+  paused: html`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>`,
 };
+const TIP_ICON = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"></path><path d="M10 21h4"></path><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"></path></svg>`;
 
 class SubscriptionTrackerCard extends LitElement {
   static get properties() {
@@ -87,19 +90,34 @@ class SubscriptionTrackerCard extends LitElement {
     return stateObj.state !== "" && Number.isFinite(n) ? n : 9999;
   }
 
+  /* ---------- formatting (presentation only) ---------- */
+
   _date(iso) {
     // "YYYY-MM-DD" is parsed as UTC by new Date(): we read it as a local date.
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
     return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(iso);
   }
 
-  _money(value, currency) {
+  _money(value, currency, digits = 2) {
     if (value === null || value === undefined || isNaN(value)) return "—";
     return new Intl.NumberFormat("it-IT", {
       style: "currency",
       currency: currency || "EUR",
-      minimumFractionDigits: 2,
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+      useGrouping: "always",
     }).format(Number(value));
+  }
+
+  _moneyCompact(value, currency) {
+    // "100 €" for whole amounts, "85,50 €" otherwise.
+    const n = Number(value);
+    return this._money(n, currency, Number.isInteger(n) ? 0 : 2);
+  }
+
+  _amount(value) {
+    // Bare amount without currency, as in the timeline labels ("19,99").
+    return Number(value).toFixed(2).replace(".", ",");
   }
 
   _shortDate(iso) {
@@ -123,13 +141,21 @@ class SubscriptionTrackerCard extends LitElement {
   _urgency(days) {
     if (days <= 3) return "danger";
     if (days <= 7) return "warn";
-    return "accent";
+    if (days <= 14) return "ok";
+    return "info";
   }
 
   _daysLabel(days) {
     if (days === 0) return "oggi";
     if (days === 1) return "domani";
     return `tra ${days} giorni`;
+  }
+
+  _palette(service) {
+    // Stable color per service, picked from the --stc-palette-* tokens.
+    let h = 0;
+    for (const ch of String(service || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return `var(--_p${(h % PALETTE_SIZE) + 1})`;
   }
 
   /* ---------- contextual tip ---------- */
@@ -144,27 +170,31 @@ class SubscriptionTrackerCard extends LitElement {
       const span = expiring[expiring.length - 1].days - expiring[0].days;
       if (span <= 7) {
         const tot = expiring.reduce((acc, e) => acc + Number(e.cost || 0), 0);
-        const names = expiring.map((e) => e.name).join(" e ");
-        return `${names} si rinnovano a pochi giorni di distanza: ${this._money(
-          tot,
-          currency
-        )} nella stessa settimana.`;
+        const names = expiring.map((e) => e.display_name || e.name).join(" e ");
+        const when = span === 0 ? "lo stesso giorno" : `a ${span} giorni di distanza`;
+        return {
+          pre: `${names} si rinnovano ${when}: `,
+          strong: this._money(tot, currency),
+          post: " nella stessa settimana.",
+        };
       }
     }
 
     const subs = this._subscriptions();
     const paused = subs.find((s) => s.attributes.status === "paused");
     if (paused) {
-      return `${paused.attributes.display_name} è in pausa: valuta se disdirlo del tutto.`;
+      return { pre: `${paused.attributes.display_name} è in pausa: valuta se disdirlo del tutto.` };
     }
 
     const risen = subs
       .filter((s) => Number(s.attributes.price_change_pct) > 20)
       .sort((a, b) => b.attributes.price_change_pct - a.attributes.price_change_pct)[0];
     if (risen) {
-      return `${risen.attributes.display_name} è aumentato del ${Math.round(
-        risen.attributes.price_change_pct
-      )} % da quando sei cliente.`;
+      return {
+        pre: `${risen.attributes.display_name} è aumentato del `,
+        strong: `${Math.round(risen.attributes.price_change_pct)} %`,
+        post: " da quando sei cliente.",
+      };
     }
 
     return null;
@@ -176,19 +206,22 @@ class SubscriptionTrackerCard extends LitElement {
     const history = (stateObj.attributes.price_history || []).slice().sort((a, b) =>
       a.date < b.date ? -1 : 1
     );
-    if (history.length < 2) {
+    if (history.length === 0) {
       return html`<div class="empty">Storico prezzi non ancora disponibile.</div>`;
+    }
+    if (history.length === 1) {
+      return html`<div class="empty">Un solo prezzo registrato finora.</div>`;
     }
 
     const W = 320;
-    const H = 74;
+    const H = 96;
     const prices = history.map((h) => Number(h.price));
     const min = Math.min(...prices);
     const max = Math.max(...prices);
     const range = max - min || 1;
 
-    const x = (i) => 6 + (i / Math.max(history.length - 1, 1)) * (W - 24);
-    const y = (p) => 56 - ((p - min) / range) * 40;
+    const x = (i) => 4 + (i / Math.max(history.length - 1, 1)) * (W - 8);
+    const y = (p) => 70 - ((p - min) / range) * 46;
 
     // Step line: the price stays constant until it changes.
     let d = `${x(0)},${y(prices[0])}`;
@@ -196,9 +229,8 @@ class SubscriptionTrackerCard extends LitElement {
       d += ` ${x(i)},${y(prices[i - 1])} ${x(i)},${y(prices[i])}`;
     }
 
-    const last = history[history.length - 1];
     const summary = history
-      .map((h) => `${this._date(h.date).getFullYear()}: ${Number(h.price).toFixed(2)}`)
+      .map((h) => `${this._date(h.date).getFullYear()}: ${this._amount(h.price)}`)
       .join(", ");
 
     // Built with createElementNS: nested html templates inside an <svg>
@@ -217,16 +249,17 @@ class SubscriptionTrackerCard extends LitElement {
       "aria-label": "Storico dei prezzi. " + summary,
     });
     svg.append(
+      el("line", { x1: 0, y1: 76, x2: W, y2: 76, class: "chart-base" }),
       el("polyline", {
         points: d, fill: "none", class: "chart-line", "stroke-width": 2,
         "stroke-linejoin": "round", "stroke-linecap": "round",
-      }),
-      el("circle", { cx: x(history.length - 1), cy: y(Number(last.price)), r: 3.2, class: "chart-dot" })
+      })
     );
     history.forEach((h, i) => {
-      const anchor = i === history.length - 1 ? "end" : "start";
+      const last = i === history.length - 1;
+      const anchor = last ? "end" : i === 0 ? "start" : "middle";
       svg.append(
-        el("text", { x: x(i), y: y(Number(h.price)) - 7, class: "chart-label", "text-anchor": anchor }, Number(h.price).toFixed(2)),
+        el("text", { x: x(i), y: y(prices[i]) - 7, class: "chart-label", "text-anchor": anchor }, this._amount(h.price)),
         el("text", { x: x(i), y: H - 3, class: "chart-axis", "text-anchor": anchor }, String(this._date(h.date).getFullYear()))
       );
     });
@@ -242,19 +275,22 @@ class SubscriptionTrackerCard extends LitElement {
   _renderRing(a, currency) {
     const pct = Number(a.budget_used_pct);
     const shown = Math.max(0, Math.min(pct, 100));
-    const R = 26;
+    const R = 44;
     const C = 2 * Math.PI * R;
-    const tone = a.budget_exceeded ? "danger" : pct >= 85 ? "warn" : "accent";
-    const label = `Budget mensile: ${Math.round(pct)} % di ${this._money(a.budget, currency)}`;
+    const label = `Spesa al ${Math.round(pct)} % della soglia mensile di ${this._moneyCompact(a.budget, currency)}`;
     return html`
-      <div class="ring tone-${tone}" role="img" aria-label=${label}>
-        <svg viewBox="0 0 64 64" aria-hidden="true">
-          <circle class="ring-track" cx="32" cy="32" r=${R} fill="none" stroke-width="6"></circle>
-          <circle class="ring-bar" cx="32" cy="32" r=${R} fill="none" stroke-width="6"
-                  stroke-linecap="round" transform="rotate(-90 32 32)"
+      <div class="ring ${a.budget_exceeded ? "tone-danger" : "tone-accent"}">
+        <svg width="116" height="116" viewBox="0 0 116 116" role="img" aria-label=${label}>
+          <circle class="ring-dots" cx="58" cy="58" r="52" fill="none" stroke-width="1" stroke-dasharray="1.5 4.5"></circle>
+          <circle class="ring-track" cx="58" cy="58" r=${R} fill="none" stroke-width="7"></circle>
+          <circle class="ring-bar" cx="58" cy="58" r=${R} fill="none" stroke-width="7"
+                  stroke-linecap="round" transform="rotate(-90 58 58)"
                   stroke-dasharray=${`${(C * shown) / 100} ${C}`}></circle>
         </svg>
-        <span class="ring-pct">${Math.round(pct)}%</span>
+        <span class="ring-center" aria-hidden="true">
+          <span class="ring-pct">${Math.round(pct)}%</span>
+          <span class="ring-of">di ${this._moneyCompact(a.budget, currency)}</span>
+        </span>
       </div>
     `;
   }
@@ -262,9 +298,9 @@ class SubscriptionTrackerCard extends LitElement {
   _renderHeader() {
     const sum = this._summary;
     if (!sum) {
-      return html`<div class="header"><div class="kpi-label">
+      return html`<div class="header"><span class="lbl">
         Sensore di riepilogo non trovato: ${this._config.summary_entity}
-      </div></div>`;
+      </span></div>`;
     }
 
     const a = sum.attributes;
@@ -276,37 +312,32 @@ class SubscriptionTrackerCard extends LitElement {
 
     return html`
       <div class="header">
-        <div class="kpi-main">
-          <div>
-            <div class="kpi-label">Spesa ricorrente</div>
-            <div class="kpi-value">
-              <span class="big">${Number(sum.state).toFixed(2).replace(".", ",")}</span>
-              <span class="unit">${currency === "EUR" ? "€" : currency}/mese</span>
-            </div>
-            ${hasBudget
-              ? html`<div class="budget-line ${a.budget_exceeded ? "over" : ""}">
-                  ${a.budget_exceeded
-                    ? `Budget superato di ${this._money(Math.abs(rem), currency)}`
-                    : `Restano ${this._money(rem, currency)} su ${this._money(a.budget, currency)}`}
-                </div>`
-              : ""}
-            ${a.mixed_currency
-              ? html`<div class="budget-line">
-                  Esclusi ${a.other_currency_count} abbonamenti in un'altra valuta
-                </div>`
-              : ""}
+        <div class="head-main">
+          <span class="lbl">Spesa ricorrente</span>
+          <div class="kpi-value">
+            <span class="big">${Number(sum.state).toFixed(2).replace(".", ",")}</span>
+            <span class="unit">${currency === "EUR" ? "€" : currency}/mese</span>
           </div>
-          ${hasBudget ? this._renderRing(a, currency) : ""}
+          ${hasBudget
+            ? html`<div class="head-note ${a.budget_exceeded ? "tone-danger" : ""}">
+                ${a.budget_exceeded
+                  ? `Budget superato di ${this._money(Math.abs(rem), currency)}`
+                  : `Restano ${this._money(rem, currency)} questo mese`}
+              </div>`
+            : ""}
+          ${a.mixed_currency
+            ? html`<div class="head-note">
+                Esclusi ${a.other_currency_count} abbonamenti in un'altra valuta
+              </div>`
+            : ""}
         </div>
+        ${hasBudget ? this._renderRing(a, currency) : ""}
       </div>
 
       <div class="stats">
-        <div><div class="stat-label">Attivi</div><div class="stat-value">${a.active_count ?? "—"}</div></div>
-        <div><div class="stat-label">Annuo</div><div class="stat-value">${this._money(a.yearly_cost, currency)}</div></div>
-        <div>
-          <div class="stat-label">In scadenza</div>
-          <div class="stat-value ${a.expiring_count ? "tone-warn" : ""}">${a.expiring_count ?? 0}</div>
-        </div>
+        <div><span class="lbl-s">Attivi</span><span class="stat-value">${a.active_count ?? "—"}</span></div>
+        <div><span class="lbl-s">Annuo</span><span class="stat-value">${this._money(a.yearly_cost, currency, 0)}</span></div>
+        <div><span class="lbl-s">In pausa</span><span class="stat-value muted">${a.paused_count ?? 0}</span></div>
       </div>
     `;
   }
@@ -318,35 +349,61 @@ class SubscriptionTrackerCard extends LitElement {
     const items = Array.isArray(a.upcoming) ? a.upcoming : [];
     const window = Number(a.upcoming_days) || 30;
     const currency = a.currency || "EUR";
+    const end = new Date();
+    end.setDate(end.getDate() + window);
+    const endLabel = end
+      .toLocaleDateString("it-IT", { day: "numeric", month: "short" })
+      .replace(".", "");
+
+    // Labels of marks closer than 9 % to the previous one go below the line.
+    let lastLeft = -100;
+    let lastBelow = true;
+    const marks = items.map((it) => {
+      const left = Math.max(0, Math.min(100, (it.days / window) * 100));
+      const below = left - lastLeft < 9 ? !lastBelow : false;
+      lastLeft = left;
+      lastBelow = below;
+      return { it, left, below };
+    });
 
     return html`
       <section class="timeline" aria-labelledby="stc-tl-title">
         <div class="tl-head">
-          <h3 id="stc-tl-title">Prossimi ${window} giorni</h3>
+          <h3 id="stc-tl-title" class="lbl">Prossimi ${window} giorni</h3>
           <span class="tl-total">${items.length ? this._money(a.upcoming_total, currency) + " in uscita" : ""}</span>
         </div>
         ${items.length
           ? html`
               <div class="tl-track" aria-hidden="true">
-                ${items.map(
-                  (it) => html`<span class="tl-dot tone-${this._urgency(it.days)}"
-                    style=${`left:${Math.max(0, Math.min(100, (it.days / window) * 100))}%`}></span>`
+                <div class="tl-line"></div>
+                <div class="tl-today"></div>
+                <span class="tl-edge tl-start">Oggi</span>
+                ${marks.map(
+                  ({ it, left, below }) => html`<div class="tl-mark tone-${this._urgency(it.days)} ${below ? "below" : ""}"
+                      style=${`left:${left}%`}>
+                      <span class="tl-amt">${this._amount(it.cost)}</span>
+                      <span class="tl-dot"></span>
+                    </div>`
                 )}
+                <span class="tl-edge tl-end">${endLabel}</span>
               </div>
-              <ol class="tl-list">
+              <ol class="sr-only">
                 ${items.map(
-                  (it) => html`<li>
-                    <span class="tl-dotsm tone-${this._urgency(it.days)}" aria-hidden="true"></span>
-                    <span class="tl-name">${it.name}</span>
-                    <span class="tl-when">${this._daysLabel(it.days)} · ${this._shortDate(it.renewal)}</span>
-                    <span class="tl-cost">${this._money(it.cost, currency)}</span>
-                  </li>`
+                  (it) => html`<li>${it.display_name || it.name}: ${this._money(it.cost, currency)},
+                    ${this._daysLabel(it.days)} (${this._shortDate(it.renewal)})</li>`
                 )}
               </ol>
             `
           : html`<div class="empty">Nessun rinnovo nei prossimi ${window} giorni.</div>`}
       </section>
     `;
+  }
+
+  _rowMeta(a, paused, currency) {
+    if (paused) return "In pausa";
+    if (a.shared_count > 1) return `1 di ${a.shared_count}`;
+    if (a.billing_cycle !== "monthly") return `${this._money(a.monthly_cost, currency)}/mese`;
+    return "Solo io";
   }
 
   _renderRow(s) {
@@ -356,79 +413,83 @@ class SubscriptionTrackerCard extends LitElement {
     const open = this._open === s.entity_id;
     const currency = a.currency || "EUR";
     const kind = paused ? "paused" : ICONS[a.category] ? a.category : "other";
-    const tone = a.status === "expiring_soon" ? "warn" : "ok";
+    const color = paused ? "var(--_muted)" : this._palette(a.service);
+    const detailId = "stc-d-" + s.entity_id.replace(/\W/g, "_");
+    const showPill = !paused && a.status === "expiring_soon";
 
     return html`
-      <button type="button" class="row ${paused ? "paused" : ""}"
-              aria-expanded=${open ? "true" : "false"}
-              aria-controls=${"stc-d-" + s.entity_id.replace(/\W/g, "_")}
-              @click=${() => this._toggle(s.entity_id)}>
-        <span class="svc-icon kind-${kind}">${ICONS[kind]}</span>
-        <span class="row-main">
-          <span class="row-title">
-            <span class="name">${a.display_name}</span>
-            ${!paused && a.status !== "active"
-              ? html`<span class="pill tone-${tone}">${days < 0 ? "scaduto" : days + " gg"}</span>`
-              : ""}
+      <div class="sub ${open ? "open" : ""} ${paused ? "paused" : ""}" style=${`--c:${color}`}>
+        <button type="button" class="row" aria-expanded=${open ? "true" : "false"}
+                aria-controls=${detailId} @click=${() => this._toggle(s.entity_id)}>
+          <span class="svc-icon">${a.custom_icon && !paused
+            ? html`<ha-icon .icon=${a.custom_icon}></ha-icon>`
+            : ICONS[kind]}</span>
+          <span class="row-main">
+            <span class="row-title">
+              <span class="name">${a.display_name}</span>
+              ${showPill
+                ? html`<span class="pill tone-${days <= 3 ? "danger" : "warn"}">${days} gg</span>`
+                : ""}
+            </span>
+            <span class="row-sub">
+              ${paused
+                ? `${a.plan ? a.plan + " · " : ""}in pausa`
+                : `${a.plan ? a.plan + " · " : ""}${this._cycleLabel(a.billing_cycle)} · ${this._shortDate(a.next_renewal)}`}
+            </span>
           </span>
-          <span class="row-sub">
-            ${paused
-              ? "In pausa"
-              : `${a.plan ? a.plan + " · " : ""}${this._cycleLabel(a.billing_cycle)} · ${this._shortDate(a.next_renewal)}`}
+          <span class="row-right">
+            <span class="cost">${paused ? "—" : this._money(a.cost, currency)}</span>
+            <span class="row-meta">${this._rowMeta(a, paused, currency)}</span>
           </span>
-        </span>
-        <span class="row-right">
-          <span class="cost">${paused ? "—" : this._money(a.cost, currency)}</span>
-          ${!paused && a.shared_count > 1
-            ? html`<span class="row-meta">1 di ${a.shared_count}</span>`
-            : !paused && a.billing_cycle === "yearly"
-            ? html`<span class="row-meta">${this._money(a.monthly_cost, currency)}/mese</span>`
-            : ""}
-        </span>
-      </button>
-      ${open ? this._renderDetail(s) : ""}
+        </button>
+        ${open ? this._renderDetail(s, detailId) : ""}
+      </div>
     `;
   }
 
-  _renderDetail(s) {
+  _renderDetail(s, detailId) {
     const a = s.attributes;
     const currency = a.currency || "EUR";
+    const paused = a.status === "paused";
 
     const rows = [
-      ["Ciclo di fatturazione", this._cycleLabel(a.billing_cycle)],
-      ["Prossimo rinnovo", this._longDate(a.next_renewal)],
-      ["Categoria", a.category],
+      ["Ciclo", this._cycleLabel(a.billing_cycle)],
+      ["Prossimo rinnovo", paused ? "In pausa" : this._longDate(a.next_renewal)],
+      ["Profili condivisi", a.shared_count > 1 ? `${a.shared_count} persone` : "Solo io"],
     ];
-    if (a.shared_count > 1) rows.push(["Profili condivisi", `${a.shared_count} persone`]);
-    if (a.subscribed_since)
+    if (a.subscribed_since) {
+      const years = Math.floor(a.subscribed_days / 365);
       rows.push([
         "Cliente dal",
-        `${this._longDate(a.subscribed_since)} · ${Math.floor(a.subscribed_days / 365)} anni`,
+        `${this._date(a.subscribed_since).toLocaleDateString("it-IT", { month: "long", year: "numeric" })} · ${years} ${years === 1 ? "anno" : "anni"}`,
       ]);
+    }
     if (a.notes) rows.push(["Note", a.notes]);
 
+    const total = Number(a.price_change_total);
+    const hasDelta = a.price_change_total !== undefined && a.price_change_total !== null;
+    const delta = !hasDelta
+      ? ""
+      : total === 0
+      ? "nessuna variazione"
+      : `${total > 0 ? "+" : "−"}${this._money(Math.abs(total), currency)} · ${total > 0 ? "+" : "−"}${Math.abs(Math.round(Number(a.price_change_pct)))}%`;
+
     return html`
-      <div class="detail" id=${"stc-d-" + s.entity_id.replace(/\W/g, "_")}>
+      <div class="detail" id=${detailId}>
         <div class="detail-kpis">
-          <div><div class="stat-label">Per ciclo</div><div class="detail-kpi">${this._money(a.cost, currency)}</div></div>
-          <div><div class="stat-label">Al mese</div><div class="detail-kpi">${this._money(a.monthly_cost, currency)}</div></div>
-          <div><div class="stat-label">A persona</div><div class="detail-kpi">${this._money(a.cost_per_person, currency)}</div></div>
+          <div><span class="lbl-s">Per ciclo</span><span class="detail-kpi">${this._money(a.cost, currency)}</span></div>
+          <div><span class="lbl-s">Al mese</span><span class="detail-kpi">${this._money(a.monthly_cost, currency)}</span></div>
+          <div><span class="lbl-s">A persona</span><span class="detail-kpi">${this._money(a.cost_per_person, currency)}</span></div>
         </div>
 
-        <div class="detail-rows">
-          ${rows.map(
-            ([k, v]) => html`<div class="detail-row"><span>${k}</span><span class="v">${v}</span></div>`
-          )}
+        <div class="facts">
+          ${rows.map(([k, v]) => html`<div class="fact"><span>${k}</span><span class="v">${v}</span></div>`)}
         </div>
 
-        <div class="chart-block">
-          <div class="chart-head">
-            <span>Storico prezzo</span>
-            ${a.price_change_total
-              ? html`<span class="${a.price_change_total > 0 ? "tone-danger" : "tone-ok"}">
-                  ${a.price_change_total > 0 ? "+" : ""}${this._money(a.price_change_total, currency)}
-                </span>`
-              : ""}
+        <div class="history">
+          <div class="history-head">
+            <span class="lbl">Storico prezzo</span>
+            <span class="delta ${total > 0 ? "tone-warn" : total < 0 ? "tone-ok" : "muted"}">${delta}</span>
           </div>
           ${this._priceChart(s)}
         </div>
@@ -464,8 +525,8 @@ class SubscriptionTrackerCard extends LitElement {
         </div>
         ${tip
           ? html`<div class="tip">
-              <ha-icon icon="mdi:lightbulb-outline"></ha-icon>
-              <span>${tip}</span>
+              ${TIP_ICON}
+              <span>${tip.pre}${tip.strong ? html`<span class="tip-strong">${tip.strong}</span>` : ""}${tip.post || ""}</span>
             </div>`
           : ""}
       </ha-card>
@@ -482,34 +543,46 @@ class SubscriptionTrackerCard extends LitElement {
         --_bg: var(--stc-bg, var(--ha-card-background, var(--card-background-color, #fff)));
         --_surface: var(--stc-surface, var(--secondary-background-color, #f5f5f5));
         --_border: var(--stc-border, var(--divider-color, #e0e0e0));
+        --_border-strong: var(--stc-border-strong, var(--divider-color, #e0e0e0));
+        --_track: var(--stc-track, var(--divider-color, #e0e0e0));
         --_text: var(--stc-text, var(--primary-text-color, #212121));
         --_muted: var(--stc-muted, var(--secondary-text-color, #727272));
         --_accent: var(--stc-accent, var(--primary-color, #03a9f4));
         --_ok: var(--stc-ok, var(--success-color, #2e7d32));
         --_warn: var(--stc-warn, var(--warning-color, #b26a00));
         --_danger: var(--stc-danger, var(--error-color, #c62828));
-        --_video: var(--stc-video, var(--_accent));
-        --_audio: var(--stc-audio, var(--_ok));
-        --_other: var(--stc-other, var(--_muted));
+        --_info: var(--stc-info, var(--info-color, #0288d1));
+        --_p1: var(--stc-palette-1, var(--red-color, #e53935));
+        --_p2: var(--stc-palette-2, var(--amber-color, #ffb300));
+        --_p3: var(--stc-palette-3, var(--green-color, #43a047));
+        --_p4: var(--stc-palette-4, var(--blue-color, #1e88e5));
+        --_p5: var(--stc-palette-5, var(--purple-color, #8e24aa));
+        --_p6: var(--stc-palette-6, var(--cyan-color, #00acc1));
         --_radius: var(--stc-radius, var(--ha-card-border-radius, 12px));
-        --_row-radius: var(--stc-row-radius, 12px);
+        --_row-radius: var(--stc-row-radius, 16px);
         --_font: var(--stc-font, inherit);
         --_font-display: var(--stc-font-display, inherit);
         --_font-mono: var(--stc-font-mono, inherit);
       }
       :host([theme="orbit"]) {
-        --stc-bg: #05070c;
-        --stc-surface: #0c1019;
+        --stc-bg: #0c1019;
+        --stc-surface: #121826;
         --stc-border: #1c2331;
+        --stc-border-strong: #232c3d;
+        --stc-track: #1a2130;
         --stc-text: #e8ecf4;
         --stc-muted: #9aa4b6;
         --stc-accent: #4fd6f0;
         --stc-ok: #3ddc84;
         --stc-warn: #f5b74a;
         --stc-danger: #ff5a5f;
-        --stc-video: #4fd6f0;
-        --stc-audio: #8c7cff;
-        --stc-other: #9aa4b6;
+        --stc-info: #4fa8ff;
+        --stc-palette-1: #ff5a5f;
+        --stc-palette-2: #f2c94c;
+        --stc-palette-3: #3ddc84;
+        --stc-palette-4: #4fa8ff;
+        --stc-palette-5: #8c7cff;
+        --stc-palette-6: #4fd6f0;
         --stc-radius: 24px;
         --stc-row-radius: 16px;
         --stc-font: Inter, system-ui, sans-serif;
@@ -518,6 +591,7 @@ class SubscriptionTrackerCard extends LitElement {
       }
 
       ha-card {
+        display: block;
         overflow: hidden;
         background: var(--_bg);
         color: var(--_text);
@@ -530,144 +604,175 @@ class SubscriptionTrackerCard extends LitElement {
       .tone-warn { color: var(--_warn); }
       .tone-danger { color: var(--_danger); }
       .tone-accent { color: var(--_accent); }
+      .tone-info { color: var(--_info); }
+      .muted { color: var(--_muted); }
+
+      .sr-only {
+        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+      }
 
       button { font: inherit; color: inherit; }
-      button:focus-visible {
-        outline: 2px solid var(--_accent);
-        outline-offset: -2px;
+      button:focus-visible { outline: 2px solid var(--_accent); outline-offset: -2px; }
+
+      /* Small uppercase labels */
+      .lbl, .lbl-s {
+        font-family: var(--_font-mono); text-transform: uppercase; color: var(--_muted);
+        font-weight: 400; margin: 0;
       }
+      .lbl { font-size: 11px; letter-spacing: 0.14em; }
+      .lbl-s { font-size: 10px; letter-spacing: 0.1em; }
 
-      .header { padding: 16px 16px 12px; }
-      .kpi-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-      .kpi-label { font-size: 12px; color: var(--_muted); margin-bottom: 6px; }
-      :host([theme="orbit"]) .kpi-label,
-      :host([theme="orbit"]) .stat-label { font-family: var(--_font-mono); text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; }
-      .kpi-value { display: flex; align-items: baseline; gap: 7px; }
-      .big { font-family: var(--_font-display); font-size: 29px; font-weight: 500; line-height: 1; }
-      :host([theme="orbit"]) .big { font-size: 46px; font-weight: 600; }
-      .unit { font-size: 15px; color: var(--_muted); }
-      .budget-line { font-size: 12px; color: var(--_muted); margin-top: 8px; }
-      .budget-line.over { color: var(--_danger); }
+      /* Header */
+      .header {
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        padding: 22px 22px 18px;
+      }
+      .head-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+      .kpi-value { display: flex; align-items: baseline; gap: 6px; }
+      .big {
+        font-family: var(--_font-display); font-size: 46px; font-weight: 500;
+        line-height: 1; letter-spacing: -0.02em;
+      }
+      .unit { font-size: 14px; color: var(--_muted); }
+      .head-note { font-size: 12px; color: var(--_muted); }
 
-      .ring { position: relative; width: 64px; height: 64px; flex: none; }
-      .ring svg { width: 100%; height: 100%; display: block; }
-      .ring-track { stroke: var(--_border); }
+      .ring { position: relative; width: 116px; height: 116px; flex: none; }
+      .ring svg { display: block; }
+      .ring-dots { stroke: var(--_border); }
+      .ring-track { stroke: var(--_track); }
       .ring-bar { stroke: currentColor; }
-      .ring-pct {
-        position: absolute; inset: 0; display: grid; place-items: center;
-        font-family: var(--_font-display); font-size: 14px; font-weight: 600; color: var(--_text);
+      .ring-center {
+        position: absolute; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 2px;
       }
+      .ring-pct { font-family: var(--_font-display); font-size: 22px; font-weight: 500; color: var(--_text); }
+      .ring-of { font-family: var(--_font-mono); font-size: 10px; color: var(--_muted); }
 
+      /* Stat strip */
       .stats {
-        display: flex; gap: 16px; padding: 10px 16px;
-        border-top: 1px solid var(--_border);
-        border-bottom: 1px solid var(--_border);
-        background: var(--_surface);
+        display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-top: 1px solid var(--_border); border-bottom: 1px solid var(--_border);
       }
-      .stats > div { flex: 1; }
-      .stats > div + div { border-left: 1px solid var(--_border); padding-left: 16px; }
-      .stat-label { font-size: 11px; color: var(--_muted); margin-bottom: 2px; }
-      .stat-value { font-family: var(--_font-display); font-size: 15px; font-weight: 500; }
+      .stats > div { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; }
+      .stats > div:first-child { padding-left: 22px; }
+      .stats > div + div { border-left: 1px solid var(--_border); }
+      .stat-value { font-family: var(--_font-display); font-size: 18px; font-weight: 500; }
 
-      .timeline { padding: 14px 16px; border-bottom: 1px solid var(--_border); }
+      /* Timeline */
+      .timeline {
+        display: flex; flex-direction: column; gap: 14px;
+        padding: 18px 22px 20px; border-bottom: 1px solid var(--_border);
+      }
       .tl-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-      .tl-head h3 { margin: 0; font-size: 13px; font-weight: 500; }
-      .tl-total { font-size: 12px; color: var(--_muted); }
-      .tl-track {
-        position: relative; height: 14px; margin: 14px 7px 10px;
-        border-bottom: 2px solid var(--_border);
+      .tl-total { font-size: 13px; }
+      .tl-track { position: relative; height: 64px; }
+      .tl-line {
+        position: absolute; left: 0; right: 0; top: 26px; height: 2px;
+        background: var(--_border); border-radius: 2px;
       }
+      .tl-today { position: absolute; left: 0; top: 20px; width: 2px; height: 14px; background: var(--_text); }
+      .tl-edge {
+        position: absolute; top: 46px; font-family: var(--_font-mono); font-size: 10px;
+        text-transform: uppercase; color: var(--_muted);
+      }
+      .tl-start { left: 0; color: var(--_text); }
+      .tl-end { right: 0; }
+      .tl-mark {
+        position: absolute; top: 0; transform: translateX(-50%);
+        display: flex; flex-direction: column; align-items: center; gap: 5px;
+      }
+      .tl-mark.below { flex-direction: column-reverse; top: 18px; }
+      .tl-amt { font-family: var(--_font-mono); font-size: 10px; line-height: 13px; }
+      .tl-mark.tone-ok .tl-amt, .tl-mark.tone-info .tl-amt { color: var(--_muted); }
       .tl-dot {
-        position: absolute; top: 0; width: 12px; height: 12px; margin-left: -6px;
-        border-radius: 50%; background: currentColor;
-        border: 2px solid var(--_bg); box-sizing: content-box;
+        width: 12px; height: 12px; border-radius: 50%; background: currentColor;
+        border: 3px solid var(--_bg); box-sizing: content-box; flex: none;
       }
-      .tl-list { list-style: none; margin: 0; padding: 0; }
-      .tl-list li {
-        display: grid; grid-template-columns: 10px 1fr auto; column-gap: 10px; align-items: baseline;
-        padding: 5px 0; font-size: 13px;
-      }
-      .tl-dotsm { width: 8px; height: 8px; border-radius: 50%; background: currentColor; align-self: center; grid-row: 1 / span 2; }
-      .tl-name { font-weight: 500; }
-      .tl-cost { font-family: var(--_font-display); text-align: right; }
-      .tl-when { grid-column: 2; font-size: 12px; color: var(--_muted); }
-      .tl-cost { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
 
-      .list { padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+      /* Subscriptions */
+      .list { display: flex; flex-direction: column; padding: 6px 12px 10px; }
+      .sub {
+        display: flex; flex-direction: column; margin-top: 6px;
+        border-radius: var(--_row-radius); border: 1px solid transparent;
+      }
+      .sub.open { background: var(--_surface); border-color: var(--_border-strong); }
+      .sub.paused { opacity: 0.6; }
       .row {
         display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box;
-        min-height: 64px; padding: 8px 10px; margin: 0; text-align: left; cursor: pointer;
-        background: transparent; border: 1px solid transparent; border-radius: var(--_row-radius);
+        min-height: 64px; padding: 10px; margin: 0; text-align: left; cursor: pointer;
+        background: transparent; border: 0; border-radius: var(--_row-radius);
       }
-      .row:hover { background: var(--_surface); }
-      :host([theme="orbit"]) .row { background: var(--_surface); border-color: var(--_border); }
-      .row.paused { opacity: 0.6; }
-      .row > span { display: block; }
+      .sub:not(.open) .row:hover { background: var(--_surface); }
       .svc-icon {
-        flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid !important; place-items: center;
-        color: var(--_other);
-        background: color-mix(in srgb, currentColor 14%, transparent);
+        flex: none; width: 42px; height: 42px; box-sizing: border-box; border-radius: 13px;
+        display: flex; align-items: center; justify-content: center; color: var(--c);
+        background: color-mix(in srgb, var(--c) 12%, transparent);
+        border: 1px solid color-mix(in srgb, var(--c) 32%, transparent);
       }
-      .svc-icon svg { width: 22px; height: 22px; }
-      .kind-video { color: var(--_video); }
-      .kind-audio { color: var(--_audio); }
-      .kind-other, .kind-paused { color: var(--_other); }
-      .row-main { flex: 1; min-width: 0; }
-      .row-title { display: flex !important; align-items: center; gap: 6px; }
-      .name { font-size: 14px; font-weight: 500; }
+      .svc-icon ha-icon { --mdc-icon-size: 20px; }
+      .row-main { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+      .row-title { display: flex; align-items: center; gap: 8px; }
+      .name { font-family: var(--_font-display); font-size: 15px; font-weight: 500; }
       .pill {
-        font-size: 11px; padding: 1px 8px; border-radius: 99px; white-space: nowrap;
-        background: color-mix(in srgb, currentColor 14%, transparent);
+        font-family: var(--_font-mono); font-size: 10px; text-transform: uppercase;
+        padding: 2px 7px; border-radius: 99px; white-space: nowrap;
+        background: color-mix(in srgb, currentColor 16%, transparent);
       }
-      .row-sub { font-size: 12px; color: var(--_muted); margin-top: 3px; }
-      .row-right { text-align: right; flex: none; }
-      .cost { font-family: var(--_font-display); font-size: 14px; }
-      .row-meta { font-size: 11px; color: var(--_muted); margin-top: 2px; }
-
-      .detail {
-        margin: 0 0 4px; padding: 0 14px;
-        background: var(--_surface); border-radius: var(--_row-radius);
+      .row-sub {
+        font-size: 12px; color: var(--_muted);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
-      .detail-kpis { display: flex; gap: 14px; padding: 12px 0; }
-      .detail-kpis > div { flex: 1; }
-      .detail-kpis > div + div { border-left: 1px solid var(--_border); padding-left: 14px; }
-      .detail-kpi { font-family: var(--_font-display); font-size: 16px; font-weight: 500; }
+      .row-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+      .cost { font-family: var(--_font-display); font-size: 15px; font-weight: 500; }
+      .row-meta {
+        font-family: var(--_font-mono); font-size: 10px; text-transform: uppercase; color: var(--_muted);
+      }
 
-      .detail-rows { border-top: 1px solid var(--_border); padding: 4px 0; }
-      .detail-row {
+      /* Detail */
+      .detail { display: flex; flex-direction: column; gap: 16px; padding: 4px 14px 16px; }
+      .detail-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+      .detail-kpis > div {
+        display: flex; flex-direction: column; gap: 4px; padding: 10px 12px;
+        border-radius: 12px; background: var(--_bg); border: 1px solid var(--_border);
+      }
+      .detail-kpi { font-family: var(--_font-display); font-size: 15px; font-weight: 500; }
+      .facts { display: flex; flex-direction: column; }
+      .fact {
         display: flex; justify-content: space-between; gap: 12px;
-        padding: 8px 0; font-size: 13px; color: var(--_muted);
+        padding: 9px 2px; border-bottom: 1px solid var(--_border); font-size: 13px;
+        color: var(--_muted);
       }
-      .detail-row .v { color: var(--_text); text-align: right; }
+      .fact .v { color: var(--_text); text-align: right; }
+      .history { display: flex; flex-direction: column; gap: 10px; }
+      .history-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+      .delta { font-size: 12px; }
+      .chart { width: 100%; height: 96px; display: block; overflow: visible; }
+      .chart-base { stroke: var(--_border); stroke-width: 1; }
+      .chart-line { stroke: var(--c); }
+      .chart-label { font-family: var(--_font-mono); font-size: 10px; fill: var(--_text); }
+      .chart-axis { font-family: var(--_font-mono); font-size: 10px; fill: var(--_muted); }
 
-      .chart-block { border-top: 1px solid var(--_border); padding: 12px 0; }
-      .chart-head {
-        display: flex; justify-content: space-between; align-items: baseline;
-        font-size: 13px; font-weight: 500; margin-bottom: 8px;
-      }
-      .chart { width: 100%; height: 74px; display: block; }
-      .chart-line { stroke: var(--_accent); }
-      .chart-dot { fill: var(--_accent); }
-      .chart-label { font-size: 9px; fill: var(--_muted); }
-      .chart-axis { font-size: 9px; fill: var(--_muted); }
-
-      .detail-actions { padding: 4px 0 12px; }
+      .detail-actions { display: flex; }
       .btn {
         min-height: 44px; min-width: 44px; padding: 0 16px; cursor: pointer;
         font-size: 13px; background: none; color: var(--_accent);
-        border: 1px solid var(--_border); border-radius: 10px;
+        border: 1px solid var(--_border); border-radius: 12px;
       }
       .btn:hover { background: color-mix(in srgb, var(--_accent) 10%, transparent); }
 
+      /* Tip */
       .tip {
-        display: flex; align-items: flex-start; gap: 10px;
-        padding: 12px 16px; border-top: 1px solid var(--_border);
-        background: var(--_surface);
-        font-size: 12px; line-height: 1.5; color: var(--_muted);
+        display: flex; align-items: flex-start; gap: 12px;
+        margin: 4px 12px 14px; padding: 14px; border-radius: var(--_row-radius);
+        background: color-mix(in srgb, var(--_warn) 8%, transparent);
+        border: 1px solid color-mix(in srgb, var(--_warn) 28%, transparent);
+        font-size: 13px; line-height: 1.5; color: var(--_text);
       }
-      .tip ha-icon { --mdc-icon-size: 17px; flex: none; color: var(--_warn); }
+      .tip svg { flex: none; margin-top: 1px; color: var(--_warn); }
+      .tip-strong { color: var(--_warn); }
 
-      .empty { padding: 12px 0; font-size: 13px; color: var(--_muted); }
+      .empty { padding: 4px 0; font-size: 12px; color: var(--_muted); }
 
       @media (prefers-reduced-motion: no-preference) {
         .ring-bar { transition: stroke-dasharray 0.4s ease; }

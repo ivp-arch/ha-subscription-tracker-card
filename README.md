@@ -61,9 +61,9 @@ entities:
 
 ## Themes and customization
 
-All colors use `--stc-*` CSS variables (`--stc-bg`, `--stc-surface`, `--stc-border`, `--stc-text`, `--stc-muted`, `--stc-accent`, `--stc-ok`, `--stc-warn`, `--stc-danger`, `--stc-video`, `--stc-audio`, `--stc-other`, `--stc-radius`, `--stc-row-radius`, `--stc-font`, `--stc-font-display`, `--stc-font-mono`). When not set they inherit the Home Assistant theme; you can redefine them from a theme or with card-mod. The `orbit` preset loads no external fonts: it uses Space Grotesk, Inter and JetBrains Mono only if they are already installed, otherwise system fonts.
+All colors use `--stc-*` CSS variables: `--stc-bg` (card), `--stc-surface` (open row), `--stc-border`, `--stc-border-strong`, `--stc-track` (budget ring track), `--stc-text`, `--stc-muted`, `--stc-accent`, `--stc-ok`, `--stc-warn`, `--stc-danger`, `--stc-info`, `--stc-palette-1` … `--stc-palette-6` (one stable color per service), `--stc-radius`, `--stc-row-radius`, `--stc-font`, `--stc-font-display`, `--stc-font-mono`. When not set they inherit the Home Assistant theme; you can redefine them from a theme or with card-mod. The `orbit` preset loads no external fonts: it uses Space Grotesk, Inter and JetBrains Mono only if they are already installed, otherwise system fonts.
 
-Icons are generic per category (video, audio, other, paused), not brand logos.
+Icons are generic per category (video, audio, other, paused), not brand logos. If you set a custom `mdi:` icon on a subscription in the integration's options, the card shows that icon instead.
 
 ## Contextual tip
 
