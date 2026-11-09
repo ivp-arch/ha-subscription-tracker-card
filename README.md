@@ -1,40 +1,40 @@
 # Subscription Tracker Card
 
-Card Lovelace per l'integrazione [Subscription Tracker](https://github.com/ivp-arch/ha-subscription-tracker).
+Lovelace card for the [Subscription Tracker](https://github.com/ivp-arch/ha-subscription-tracker) integration.
 
-Mostra la spesa ricorrente totale, l'elenco degli abbonamenti con icona e colore per servizio, e — al tap su una riga — il dettaglio completo con lo storico prezzi.
+It shows the total recurring spend, the monthly budget, a 30-day renewal timeline and the list of subscriptions. Tap a row to see the full detail with the price history.
 
-## Installazione
+## Installation
 
-### Marketplace di Home Assistant (2026.11 o successivo)
-1. Impostazioni → Marketplace → menu (⋮) → **Aggiungi da link** (serve collegare un account GitHub)
-2. Inserisci `ivp-arch/ha-subscription-tracker-card`; se richiesto, scegli il tipo **Dashboard**
-3. Installa e ricarica il browser. La risorsa viene aggiunta in automatico (`/local/community/...`), a meno che tu gestisca le risorse in YAML
+### Home Assistant Marketplace (2026.11 or later)
+1. Settings → Marketplace → menu (⋮) → **Add from link** (requires connecting a GitHub account)
+2. Enter `ivp-arch/ha-subscription-tracker-card`; if asked, choose the **Dashboard** type
+3. Install and reload the browser. The resource is added automatically (`/local/community/...`), unless you manage resources in YAML
 
-### HACS (Home Assistant precedente alla 2026.11)
-HACS → Frontend → menu (⋮) → Repository personalizzati → aggiungi l'URL di questo repo, categoria **Lovelace**. Installa e ricarica la pagina.
+### HACS (Home Assistant before 2026.11)
+HACS → Frontend → menu (⋮) → Custom repositories → add this repo's URL, category **Lovelace**. Install and reload the page.
 
-### Manuale
-Copia `dist/subscription-tracker-card.js` in `/config/www/`, poi aggiungi la risorsa:
+### Manual
+Copy `dist/subscription-tracker-card.js` to `/config/www/`, then add the resource:
 
-Impostazioni → Dashboard → menu (⋮) → Risorse → Aggiungi:
+Settings → Dashboards → menu (⋮) → Resources → Add (enable advanced mode in your user profile if the menu is missing):
 - URL: `/local/subscription-tracker-card.js`
-- Tipo: Modulo JavaScript
+- Type: JavaScript module
 
-## Configurazione
+## Configuration
 
-Minima — la card trova da sola tutti gli abbonamenti:
+Minimal — the card finds all subscriptions by itself:
 
 ```yaml
 type: custom:subscription-tracker-card
 ```
 
-Completa:
+Full:
 
 ```yaml
 type: custom:subscription-tracker-card
 summary_entity: sensor.abbonamenti_totale
-theme: auto          # oppure orbit
+theme: auto          # or orbit
 show_paused: true
 show_tip: true
 show_timeline: true
@@ -45,32 +45,34 @@ entities:
   - sensor.spotify_famiglia
 ```
 
-| Opzione | Default | Descrizione |
+| Option | Default | Description |
 |---|---|---|
-| `summary_entity` | `sensor.abbonamenti_totale` | Sensore di riepilogo dell'integrazione |
-| `entities` | auto | Elenco esplicito. Se omesso, la card rileva da sola i sensori dell'integrazione |
-| `show_paused` | `true` | Mostra gli abbonamenti in pausa in fondo, attenuati |
-| `show_tip` | `true` | Mostra il suggerimento contestuale in fondo alla card |
-| `show_timeline` | `true` | Mostra i rinnovi dei prossimi 30 giorni (attributo `upcoming` del riepilogo) |
-| `show_budget` | `true` | Mostra l'anello del budget mensile, se impostato nell'integrazione |
-| `theme` | `auto` | `auto` eredita il tema di Home Assistant; `orbit` applica lo stile scuro Orbit |
+| `summary_entity` | `sensor.abbonamenti_totale` | Summary sensor of the integration |
+| `entities` | auto | Explicit list. If omitted, the card detects the integration's sensors by itself |
+| `show_paused` | `true` | Show paused subscriptions at the bottom, dimmed |
+| `show_tip` | `true` | Show the contextual tip at the bottom of the card |
+| `show_timeline` | `true` | Show the renewals of the next 30 days (`upcoming` attribute of the summary) |
+| `show_budget` | `true` | Show the monthly budget ring, if a budget is set in the integration |
+| `theme` | `auto` | `auto` inherits the Home Assistant theme; `orbit` applies the dark Orbit style |
 
-## Temi e personalizzazione
+## Themes and customization
 
-Tutti i colori usano variabili CSS `--stc-*` (`--stc-bg`, `--stc-surface`, `--stc-border`, `--stc-text`, `--stc-muted`, `--stc-accent`, `--stc-ok`, `--stc-warn`, `--stc-danger`, `--stc-video`, `--stc-audio`, `--stc-other`, `--stc-radius`, `--stc-row-radius`, `--stc-font`, `--stc-font-display`, `--stc-font-mono`). Se non impostate ereditano il tema di Home Assistant; si possono ridefinire da un tema o con card-mod. Il preset `orbit` non carica font esterni: usa Space Grotesk, Inter e JetBrains Mono solo se già installati, altrimenti i font di sistema.
+All colors use `--stc-*` CSS variables (`--stc-bg`, `--stc-surface`, `--stc-border`, `--stc-text`, `--stc-muted`, `--stc-accent`, `--stc-ok`, `--stc-warn`, `--stc-danger`, `--stc-video`, `--stc-audio`, `--stc-other`, `--stc-radius`, `--stc-row-radius`, `--stc-font`, `--stc-font-display`, `--stc-font-mono`). When not set they inherit the Home Assistant theme; you can redefine them from a theme or with card-mod. The `orbit` preset loads no external fonts: it uses Space Grotesk, Inter and JetBrains Mono only if they are already installed, otherwise system fonts.
 
-Le icone sono generiche per categoria (video, audio, altro, in pausa), non loghi di marchi.
+Icons are generic per category (video, audio, other, paused), not brand logos.
 
-## Suggerimento contestuale
+## Contextual tip
 
-Il riquadro in fondo non è un dato ma un'osservazione, scelta in ordine di priorità:
+The box at the bottom is an observation, not a data point, chosen in priority order:
 
-1. Due o più rinnovi entro la stessa settimana → mostra il totale che uscirà in quei giorni
-2. Un abbonamento in pausa → suggerisce di valutare la disdetta
-3. Un servizio aumentato di oltre il 20 % da quando sei cliente → segnala la variazione
+1. Two or more renewals within the same week → shows the total that will go out in those days
+2. A paused subscription → suggests considering cancelling it
+3. A service that rose by more than 20 % since you became a customer → reports the change
 
-Se nessuna condizione si verifica, il riquadro non compare.
+If none of the conditions applies, the box is not shown.
 
-## Nota
+## Note
 
-L'ordinamento è per urgenza: prima gli abbonamenti con meno giorni al rinnovo, quelli in pausa sempre in fondo.
+Sorting is by urgency: subscriptions with fewer days to renewal come first, paused ones always last.
+
+The card text and number/date formatting are currently in Italian (`it-IT`).
