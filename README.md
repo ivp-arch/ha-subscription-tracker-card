@@ -37,7 +37,7 @@ Full:
 
 ```yaml
 type: custom:subscription-tracker-card
-summary_entity: sensor.abbonamenti_totale
+summary_entity: sensor.subscriptions_total
 theme: auto          # or orbit
 show_paused: true
 show_tip: true
@@ -46,12 +46,12 @@ show_budget: true
 entities:
   - sensor.netflix_premium
   - sensor.dazn_standard
-  - sensor.spotify_famiglia
+  - sensor.spotify_family
 ```
 
 | Option | Default | Description |
 |---|---|---|
-| `summary_entity` | `sensor.abbonamenti_totale` | Summary sensor of the integration |
+| `summary_entity` | `sensor.subscriptions_total` | Summary sensor of the integration |
 | `entities` | auto | Explicit list. If omitted, the card detects the integration's sensors by itself |
 | `show_paused` | `true` | Show paused subscriptions at the bottom, dimmed |
 | `show_tip` | `true` | Show the contextual tip at the bottom of the card |

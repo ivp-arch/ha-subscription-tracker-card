@@ -7,7 +7,7 @@ const css = LitElement.prototype.css;
 const CARD_VERSION = "0.1.0";
 const THEMES = ["auto", "orbit"];
 
-// Icone generiche per categoria (nessun marchio). Disegnate qui, nessuna risorsa esterna.
+// Generic icons per category (no brands). Drawn here, no external resources.
 const ICONS = {
   video: html`<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 9.2v5.6l4.8-2.8z" fill="currentColor"/></svg>`,
   audio: html`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10v4M9 7v10M13 4v16M17 8v8M21 11v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
@@ -29,7 +29,7 @@ class SubscriptionTrackerCard extends LitElement {
   setConfig(config) {
     const theme = THEMES.includes(config?.theme) ? config.theme : "auto";
     this._config = {
-      summary_entity: "sensor.abbonamenti_totale",
+      summary_entity: "sensor.subscriptions_total",
       show_paused: true,
       show_tip: true,
       show_timeline: true,
@@ -46,18 +46,18 @@ class SubscriptionTrackerCard extends LitElement {
   }
 
   static getStubConfig() {
-    return { summary_entity: "sensor.abbonamenti_totale" };
+    return { summary_entity: "sensor.subscriptions_total" };
   }
 
-  /* ---------- dati ---------- */
+  /* ---------- data ---------- */
 
   get _summary() {
     return this.hass.states[this._config.summary_entity];
   }
 
   _subscriptions() {
-    // Se l'utente elenca le entita' esplicitamente le usiamo, altrimenti
-    // prendiamo tutti i sensori che espongono gli attributi dell'integrazione.
+    // If the user lists entities explicitly we use them, otherwise we take
+    // every sensor that exposes the integration's attributes.
     const ids =
       this._config.entities ||
       Object.keys(this.hass.states).filter((id) => {
@@ -82,13 +82,13 @@ class SubscriptionTrackerCard extends LitElement {
   }
 
   _daysForSort(stateObj) {
-    // 0 giorni (rinnovo oggi) e' un valore valido: solo stati non numerici vanno in fondo.
+    // 0 days (renewal today) is a valid value: only non-numeric states go last.
     const n = Number(stateObj.state);
     return stateObj.state !== "" && Number.isFinite(n) ? n : 9999;
   }
 
   _date(iso) {
-    // "YYYY-MM-DD" viene interpretato in UTC da new Date(): lo leggiamo come data locale.
+    // "YYYY-MM-DD" is parsed as UTC by new Date(): we read it as a local date.
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
     return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(iso);
   }
@@ -132,7 +132,7 @@ class SubscriptionTrackerCard extends LitElement {
     return `tra ${days} giorni`;
   }
 
-  /* ---------- suggerimento contestuale ---------- */
+  /* ---------- contextual tip ---------- */
 
   _tip() {
     const sum = this._summary;
@@ -170,7 +170,7 @@ class SubscriptionTrackerCard extends LitElement {
     return null;
   }
 
-  /* ---------- storico prezzi ---------- */
+  /* ---------- price history ---------- */
 
   _priceChart(stateObj) {
     const history = (stateObj.attributes.price_history || []).slice().sort((a, b) =>
@@ -190,7 +190,7 @@ class SubscriptionTrackerCard extends LitElement {
     const x = (i) => 6 + (i / Math.max(history.length - 1, 1)) * (W - 24);
     const y = (p) => 56 - ((p - min) / range) * 40;
 
-    // Linea a gradini: il prezzo resta costante finche' non cambia.
+    // Step line: the price stays constant until it changes.
     let d = `${x(0)},${y(prices[0])}`;
     for (let i = 1; i < history.length; i++) {
       d += ` ${x(i)},${y(prices[i - 1])} ${x(i)},${y(prices[i])}`;
@@ -201,8 +201,8 @@ class SubscriptionTrackerCard extends LitElement {
       .map((h) => `${this._date(h.date).getFullYear()}: ${Number(h.price).toFixed(2)}`)
       .join(", ");
 
-    // Costruito con createElementNS: i template html annidati dentro un <svg>
-    // creerebbero elementi nel namespace HTML e le etichette non verrebbero disegnate.
+    // Built with createElementNS: nested html templates inside an <svg>
+    // would create elements in the HTML namespace and the labels would not be drawn.
     const NS = "http://www.w3.org/2000/svg";
     const el = (tag, attrs = {}, text) => {
       const n = document.createElementNS(NS, tag);
@@ -474,9 +474,9 @@ class SubscriptionTrackerCard extends LitElement {
 
   static get styles() {
     return css`
-      /* Token pubblici: --stc-*. Se non impostati ereditano il tema di Home Assistant.
-         Si possono sovrascrivere da un tema HA o da card-mod. Il preset theme: orbit
-         imposta valori fissi. Gli alias --_x sono interni. */
+      /* Public tokens: --stc-*. When not set they inherit the Home Assistant theme.
+         They can be overridden from an HA theme or card-mod. The theme: orbit preset
+         sets fixed values. The --_x aliases are internal. */
       :host {
         display: block;
         --_bg: var(--stc-bg, var(--ha-card-background, var(--card-background-color, #fff)));
