@@ -1,15 +1,18 @@
 # Subscription Tracker Card
 
-Card Lovelace per l'integrazione [Subscription Tracker](https://github.com/ivp-arch/subscription-tracker).
+Card Lovelace per l'integrazione [Subscription Tracker](https://github.com/ivp-arch/ha-subscription-tracker).
 
 Mostra la spesa ricorrente totale, l'elenco degli abbonamenti con icona e colore per servizio, e — al tap su una riga — il dettaglio completo con lo storico prezzi.
 
 ## Installazione
 
-### Via HACS (repository personalizzato)
-1. HACS → Frontend → menu (⋮) → Repository personalizzati
-2. Aggiungi l'URL di questo repo, categoria **Lovelace**
-3. Installa e ricarica la pagina
+### Marketplace di Home Assistant (2026.11 o successivo)
+1. Impostazioni → Marketplace → menu (⋮) → **Aggiungi da link** (serve collegare un account GitHub)
+2. Inserisci `ivp-arch/ha-subscription-tracker-card`; se richiesto, scegli il tipo **Dashboard**
+3. Installa e ricarica il browser. La risorsa viene aggiunta in automatico (`/local/community/...`), a meno che tu gestisca le risorse in YAML
+
+### HACS (Home Assistant precedente alla 2026.11)
+HACS → Frontend → menu (⋮) → Repository personalizzati → aggiungi l'URL di questo repo, categoria **Lovelace**. Installa e ricarica la pagina.
 
 ### Manuale
 Copia `dist/subscription-tracker-card.js` in `/config/www/`, poi aggiungi la risorsa:

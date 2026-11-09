@@ -23,7 +23,6 @@ class SubscriptionTrackerCard extends LitElement {
 
   setConfig(config) {
     this._config = {
-      title: "Abbonamenti",
       summary_entity: "sensor.abbonamenti_totale",
       show_paused: true,
       show_tip: true,
@@ -67,8 +66,20 @@ class SubscriptionTrackerCard extends LitElement {
         const pa = a.attributes.status === "paused" ? 1 : 0;
         const pb = b.attributes.status === "paused" ? 1 : 0;
         if (pa !== pb) return pa - pb;
-        return (Number(a.state) || 9999) - (Number(b.state) || 9999);
+        return this._daysForSort(a) - this._daysForSort(b);
       });
+  }
+
+  _daysForSort(stateObj) {
+    // 0 giorni (rinnovo oggi) e' un valore valido: solo stati non numerici vanno in fondo.
+    const n = Number(stateObj.state);
+    return stateObj.state !== "" && Number.isFinite(n) ? n : 9999;
+  }
+
+  _date(iso) {
+    // "YYYY-MM-DD" viene interpretato in UTC da new Date(): lo leggiamo come data locale.
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
+    return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(iso);
   }
 
   _money(value, currency) {
@@ -82,13 +93,12 @@ class SubscriptionTrackerCard extends LitElement {
 
   _shortDate(iso) {
     if (!iso) return "—";
-    const d = new Date(iso);
-    return d.toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+    return this._date(iso).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
   }
 
   _longDate(iso) {
     if (!iso) return "—";
-    return new Date(iso).toLocaleDateString("it-IT", {
+    return this._date(iso).toLocaleDateString("it-IT", {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -180,7 +190,7 @@ class SubscriptionTrackerCard extends LitElement {
             </text>
             <text x=${x(i)} y=${H - 3} class="chart-axis"
                   text-anchor=${i === history.length - 1 ? "end" : "start"}>
-              ${new Date(h.date).getFullYear()}
+              ${this._date(h.date).getFullYear()}
             </text>
           `
         )}
@@ -246,7 +256,7 @@ class SubscriptionTrackerCard extends LitElement {
           <div class="row-title">
             <span class="name">${a.display_name}</span>
             ${!paused && a.status !== "active"
-              ? html`<span class="pill" style="background:${STATUS_COLORS[a.status]}22;color:${STATUS_COLORS[a.status]}">
+              ? html`<span class="pill" style="background:color-mix(in srgb, ${STATUS_COLORS[a.status]} 14%, transparent);color:${STATUS_COLORS[a.status]}">
                   ${days < 0 ? "scaduto" : days + " gg"}
                 </span>`
               : ""}
