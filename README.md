@@ -4,6 +4,10 @@ Lovelace card for the [Subscription Tracker](https://github.com/ivp-arch/ha-subs
 
 It shows the total recurring spend, the monthly budget, a 30-day renewal timeline and the list of subscriptions. Tap a row to see the full detail with the price history.
 
+![Subscription Tracker Card, Orbit theme](https://raw.githubusercontent.com/ivp-arch/ha-subscription-tracker-card/main/docs/screenshot-orbit.png)
+
+*Orbit theme, rendered with sample data.*
+
 ## Installation
 
 ### Home Assistant Marketplace (2026.11 or later)
