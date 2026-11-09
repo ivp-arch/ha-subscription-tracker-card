@@ -4,7 +4,7 @@ const LitElement =
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
-const CARD_VERSION = "0.2.0";
+const CARD_VERSION = "0.1.0";
 const THEMES = ["auto", "orbit"];
 
 // Icone generiche per categoria (nessun marchio). Disegnate qui, nessuna risorsa esterna.
