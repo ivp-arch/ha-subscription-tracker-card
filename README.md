@@ -34,8 +34,11 @@ Completa:
 ```yaml
 type: custom:subscription-tracker-card
 summary_entity: sensor.abbonamenti_totale
+theme: auto          # oppure orbit
 show_paused: true
 show_tip: true
+show_timeline: true
+show_budget: true
 entities:
   - sensor.netflix_premium
   - sensor.dazn_standard
@@ -48,6 +51,15 @@ entities:
 | `entities` | auto | Elenco esplicito. Se omesso, la card rileva da sola i sensori dell'integrazione |
 | `show_paused` | `true` | Mostra gli abbonamenti in pausa in fondo, attenuati |
 | `show_tip` | `true` | Mostra il suggerimento contestuale in fondo alla card |
+| `show_timeline` | `true` | Mostra i rinnovi dei prossimi 30 giorni (attributo `upcoming` del riepilogo) |
+| `show_budget` | `true` | Mostra l'anello del budget mensile, se impostato nell'integrazione |
+| `theme` | `auto` | `auto` eredita il tema di Home Assistant; `orbit` applica lo stile scuro Orbit |
+
+## Temi e personalizzazione
+
+Tutti i colori usano variabili CSS `--stc-*` (`--stc-bg`, `--stc-surface`, `--stc-border`, `--stc-text`, `--stc-muted`, `--stc-accent`, `--stc-ok`, `--stc-warn`, `--stc-danger`, `--stc-video`, `--stc-audio`, `--stc-other`, `--stc-radius`, `--stc-row-radius`, `--stc-font`, `--stc-font-display`, `--stc-font-mono`). Se non impostate ereditano il tema di Home Assistant; si possono ridefinire da un tema o con card-mod. Il preset `orbit` non carica font esterni: usa Space Grotesk, Inter e JetBrains Mono solo se già installati, altrimenti i font di sistema.
+
+Le icone sono generiche per categoria (video, audio, altro, in pausa), non loghi di marchi.
 
 ## Suggerimento contestuale
 
