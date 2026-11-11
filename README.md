@@ -4,9 +4,17 @@ Lovelace card for the [Subscription Tracker](https://github.com/ivp-arch/ha-subs
 
 It shows the total recurring spend, the change compared with the previous month (once the integration has recorded a full month, version 0.3.0 or later), the monthly budget, a 30-day renewal timeline and the list of subscriptions. Tap a row to see the full detail with the price history.
 
-![Subscription Tracker Card, Orbit theme](https://raw.githubusercontent.com/ivp-arch/ha-subscription-tracker-card/main/docs/screenshot-orbit.png)
+By default the card inherits the Home Assistant theme, light or dark. The optional `orbit` preset has its own dark and light schemes and follows the Home Assistant mode.
 
-*Orbit theme, rendered with sample data.*
+| Home Assistant theme, light | Home Assistant theme, dark |
+|---|---|
+| ![Subscription Tracker Card, Home Assistant theme, light](https://raw.githubusercontent.com/ivp-arch/ha-subscription-tracker-card/main/docs/screenshot-default-light.png) | ![Subscription Tracker Card, Home Assistant theme, dark](https://raw.githubusercontent.com/ivp-arch/ha-subscription-tracker-card/main/docs/screenshot-default-dark.png) |
+
+| Orbit preset, dark | Orbit preset, light |
+|---|---|
+| ![Subscription Tracker Card, Orbit preset, dark](https://raw.githubusercontent.com/ivp-arch/ha-subscription-tracker-card/main/docs/screenshot-orbit.png) | ![Subscription Tracker Card, Orbit preset, light](https://raw.githubusercontent.com/ivp-arch/ha-subscription-tracker-card/main/docs/screenshot-orbit-light.png) |
+
+*Rendered with sample data.*
 
 ## Installation
 
