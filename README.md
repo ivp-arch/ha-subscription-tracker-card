@@ -2,7 +2,7 @@
 
 Lovelace card for the [Subscription Tracker](https://github.com/ivp-arch/ha-subscription-tracker) integration.
 
-It shows the total recurring spend, the monthly budget, a 30-day renewal timeline and the list of subscriptions. Tap a row to see the full detail with the price history.
+It shows the total recurring spend, the change compared with the previous month (once the integration has recorded a full month, version 0.3.0 or later), the monthly budget, a 30-day renewal timeline and the list of subscriptions. Tap a row to see the full detail with the price history.
 
 ![Subscription Tracker Card, Orbit theme](https://raw.githubusercontent.com/ivp-arch/ha-subscription-tracker-card/main/docs/screenshot-orbit.png)
 

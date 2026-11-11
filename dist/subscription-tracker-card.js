@@ -4,7 +4,7 @@ const LitElement =
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
-const CARD_VERSION = "0.2.1";
+const CARD_VERSION = "0.3.0";
 const THEMES = ["auto", "orbit"];
 const MODES = ["auto", "dark", "light"];
 const PALETTE_SIZE = 6;
@@ -220,6 +220,24 @@ class SubscriptionTrackerCard extends LitElement {
     }).format(Number(value));
   }
 
+  _trend(a, currency) {
+    // Change against the previous month: shown only when the integration provides it.
+    const change = a.change_vs_previous;
+    if (change === null || change === undefined || isNaN(change)) return null;
+    const n = Number(change);
+    if (n === 0) return { tone: "", text: "Invariata rispetto al mese scorso" };
+    const sign = n > 0 ? "+" : "−";
+    const pct = a.change_vs_previous_pct;
+    const pctText =
+      pct === null || pct === undefined || isNaN(pct)
+        ? ""
+        : ` (${sign}${Math.abs(Number(pct)).toFixed(1).replace(".", ",")} %)`;
+    return {
+      tone: n > 0 ? "tone-warn" : "tone-ok",
+      text: `${sign}${this._money(Math.abs(n), currency)}${pctText} rispetto al mese scorso`,
+    };
+  }
+
   _moneyCompact(value, currency) {
     // "100 €" for whole amounts, "85,50 €" otherwise.
     const n = Number(value);
@@ -420,6 +438,7 @@ class SubscriptionTrackerCard extends LitElement {
       this._config.show_budget && a.budget !== null && a.budget !== undefined &&
       a.budget_used_pct !== null && a.budget_used_pct !== undefined;
     const rem = Number(a.budget_remaining);
+    const trend = this._trend(a, currency);
 
     return html`
       <div class="header">
@@ -436,6 +455,7 @@ class SubscriptionTrackerCard extends LitElement {
                   : `Restano ${this._money(rem, currency)} questo mese`}
               </div>`
             : ""}
+          ${trend ? html`<div class="head-note ${trend.tone}">${trend.text}</div>` : ""}
           ${a.mixed_currency
             ? html`<div class="head-note">
                 Esclusi ${a.other_currency_count} abbonamenti in un'altra valuta
@@ -784,6 +804,9 @@ class SubscriptionTrackerCard extends LitElement {
       }
       .unit { font-size: 14px; color: var(--_muted); }
       .head-note { font-size: 12px; color: var(--_muted); }
+      .head-note.tone-ok { color: var(--_ok-t); }
+      .head-note.tone-warn { color: var(--_warn-t); }
+      .head-note.tone-danger { color: var(--_danger-t); }
 
       .ring { position: relative; width: 116px; height: 116px; flex: none; }
       .ring svg { display: block; }
