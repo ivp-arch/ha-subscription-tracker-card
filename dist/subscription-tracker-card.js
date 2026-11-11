@@ -4,7 +4,7 @@ const LitElement =
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
-const CARD_VERSION = "0.1.2";
+const CARD_VERSION = "0.1.3";
 const THEMES = ["auto", "orbit"];
 const PALETTE_SIZE = 6;
 
@@ -713,7 +713,8 @@ class SubscriptionTrackerCard extends LitElement {
         border-radius: var(--_row-radius); border: 1px solid transparent;
       }
       .sub.open { background: var(--_surface); border-color: var(--_border-strong); }
-      .sub.paused { opacity: 0.6; }
+      /* Paused rows are muted by colour, not opacity: opacity would drop the text below AA. */
+      .sub.paused .name, .sub.paused .cost { color: var(--_muted); }
       .row {
         display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box;
         min-height: 64px; padding: 10px; margin: 0; text-align: left; cursor: pointer;
