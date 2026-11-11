@@ -4,7 +4,7 @@ const LitElement =
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
-const CARD_VERSION = "0.1.1";
+const CARD_VERSION = "0.1.2";
 const THEMES = ["auto", "orbit"];
 const PALETTE_SIZE = 6;
 
@@ -552,6 +552,18 @@ class SubscriptionTrackerCard extends LitElement {
         --_warn: var(--stc-warn, var(--warning-color, #b26a00));
         --_danger: var(--stc-danger, var(--error-color, #c62828));
         --_info: var(--stc-info, var(--info-color, #0288d1));
+        /* Contrast-safe variants derived from the theme: -t for text (mixed toward the
+           text colour), -g for graphics (dots, ring). Orbit overrides them below. */
+        --_ok-t: color-mix(in srgb, var(--_ok) 50%, var(--_text));
+        --_warn-t: color-mix(in srgb, var(--_warn) 50%, var(--_text));
+        --_danger-t: color-mix(in srgb, var(--_danger) 50%, var(--_text));
+        --_info-t: color-mix(in srgb, var(--_info) 50%, var(--_text));
+        --_accent-t: color-mix(in srgb, var(--_accent) 55%, var(--_text));
+        --_ok-g: color-mix(in srgb, var(--_ok) 70%, var(--_text));
+        --_warn-g: color-mix(in srgb, var(--_warn) 70%, var(--_text));
+        --_danger-g: color-mix(in srgb, var(--_danger) 70%, var(--_text));
+        --_info-g: color-mix(in srgb, var(--_info) 70%, var(--_text));
+        --_accent-g: color-mix(in srgb, var(--_accent) 70%, var(--_text));
         --_p1: var(--stc-palette-1, var(--red-color, #e53935));
         --_p2: var(--stc-palette-2, var(--amber-color, #ffb300));
         --_p3: var(--stc-palette-3, var(--green-color, #43a047));
@@ -588,6 +600,10 @@ class SubscriptionTrackerCard extends LitElement {
         --stc-font: Inter, system-ui, sans-serif;
         --stc-font-display: "Space Grotesk", Inter, system-ui, sans-serif;
         --stc-font-mono: "JetBrains Mono", ui-monospace, monospace;
+        --_ok-t: var(--_ok); --_warn-t: var(--_warn); --_danger-t: var(--_danger);
+        --_info-t: var(--_info); --_accent-t: var(--_accent);
+        --_ok-g: var(--_ok); --_warn-g: var(--_warn); --_danger-g: var(--_danger);
+        --_info-g: var(--_info); --_accent-g: var(--_accent);
       }
 
       ha-card {
@@ -600,11 +616,11 @@ class SubscriptionTrackerCard extends LitElement {
       }
       :host([theme="orbit"]) ha-card { border: 1px solid var(--_border); }
 
-      .tone-ok { color: var(--_ok); }
-      .tone-warn { color: var(--_warn); }
-      .tone-danger { color: var(--_danger); }
-      .tone-accent { color: var(--_accent); }
-      .tone-info { color: var(--_info); }
+      .tone-ok { color: var(--_ok-t); --_g: var(--_ok-g); }
+      .tone-warn { color: var(--_warn-t); --_g: var(--_warn-g); }
+      .tone-danger { color: var(--_danger-t); --_g: var(--_danger-g); }
+      .tone-accent { color: var(--_accent-t); --_g: var(--_accent-g); }
+      .tone-info { color: var(--_info-t); --_g: var(--_info-g); }
       .muted { color: var(--_muted); }
 
       .sr-only {
@@ -613,7 +629,7 @@ class SubscriptionTrackerCard extends LitElement {
       }
 
       button { font: inherit; color: inherit; }
-      button:focus-visible { outline: 2px solid var(--_accent); outline-offset: -2px; }
+      button:focus-visible { outline: 2px solid var(--_accent-g); outline-offset: -2px; }
 
       /* Small uppercase labels */
       .lbl, .lbl-s {
@@ -641,7 +657,7 @@ class SubscriptionTrackerCard extends LitElement {
       .ring svg { display: block; }
       .ring-dots { stroke: var(--_border); }
       .ring-track { stroke: var(--_track); }
-      .ring-bar { stroke: currentColor; }
+      .ring-bar { stroke: var(--_g, currentColor); }
       .ring-center {
         position: absolute; inset: 0; display: flex; flex-direction: column;
         align-items: center; justify-content: center; gap: 2px;
@@ -686,7 +702,7 @@ class SubscriptionTrackerCard extends LitElement {
       .tl-amt { font-family: var(--_font-mono); font-size: 10px; line-height: 13px; }
       .tl-mark.tone-ok .tl-amt, .tl-mark.tone-info .tl-amt { color: var(--_muted); }
       .tl-dot {
-        width: 12px; height: 12px; border-radius: 50%; background: currentColor;
+        width: 12px; height: 12px; border-radius: 50%; background: var(--_g, currentColor);
         border: 3px solid var(--_bg); box-sizing: content-box; flex: none;
       }
 
@@ -717,7 +733,7 @@ class SubscriptionTrackerCard extends LitElement {
       .pill {
         font-family: var(--_font-mono); font-size: 10px; text-transform: uppercase;
         padding: 2px 7px; border-radius: 99px; white-space: nowrap;
-        background: color-mix(in srgb, currentColor 16%, transparent);
+        background: color-mix(in srgb, currentColor 10%, transparent);
       }
       .row-sub {
         font-size: 12px; color: var(--_muted);
@@ -756,7 +772,7 @@ class SubscriptionTrackerCard extends LitElement {
       .detail-actions { display: flex; }
       .btn {
         min-height: 44px; min-width: 44px; padding: 0 16px; cursor: pointer;
-        font-size: 13px; background: none; color: var(--_accent);
+        font-size: 13px; background: none; color: var(--_accent-t);
         border: 1px solid var(--_border); border-radius: 12px;
       }
       .btn:hover { background: color-mix(in srgb, var(--_accent) 10%, transparent); }
@@ -769,8 +785,8 @@ class SubscriptionTrackerCard extends LitElement {
         border: 1px solid color-mix(in srgb, var(--_warn) 28%, transparent);
         font-size: 13px; line-height: 1.5; color: var(--_text);
       }
-      .tip svg { flex: none; margin-top: 1px; color: var(--_warn); }
-      .tip-strong { color: var(--_warn); }
+      .tip svg { flex: none; margin-top: 1px; color: var(--_warn-t); }
+      .tip-strong { color: var(--_warn-t); }
 
       .empty { padding: 4px 0; font-size: 12px; color: var(--_muted); }
 
