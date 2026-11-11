@@ -4,7 +4,7 @@ const LitElement =
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
-const CARD_VERSION = "0.2.0";
+const CARD_VERSION = "0.2.1";
 const THEMES = ["auto", "orbit"];
 const MODES = ["auto", "dark", "light"];
 const PALETTE_SIZE = 6;
@@ -90,6 +90,7 @@ class SubscriptionTrackerCard extends LitElement {
     const helpers = {
       summary_entity: "Il sensore «Subscriptions total» creato dall'integrazione.",
       entities: "Lascia vuoto per includere automaticamente tutti gli abbonamenti.",
+      theme: "Se non scegli nulla viene usato il tema di Home Assistant.",
       mode: "Solo con lo stile Orbit. Automatico segue il tema chiaro o scuro di Home Assistant.",
     };
     return {
