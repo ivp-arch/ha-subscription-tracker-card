@@ -4,7 +4,7 @@ const LitElement =
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
-const CARD_VERSION = "0.3.0";
+const CARD_VERSION = "0.3.1";
 const THEMES = ["auto", "orbit"];
 const MODES = ["auto", "dark", "light"];
 const PALETTE_SIZE = 6;
