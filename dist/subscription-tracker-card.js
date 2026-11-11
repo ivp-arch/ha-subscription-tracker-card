@@ -4,8 +4,9 @@ const LitElement =
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
-const CARD_VERSION = "0.1.3";
+const CARD_VERSION = "0.1.4";
 const THEMES = ["auto", "orbit"];
+const MODES = ["auto", "dark", "light"];
 const PALETTE_SIZE = 6;
 
 // Generic glyphs per category (no brands), same drawings as the Orbit mockup.
@@ -20,17 +21,34 @@ const TIP_ICON = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none
 
 class SubscriptionTrackerCard extends LitElement {
   static get properties() {
-    return { hass: {}, _config: {}, _open: {}, theme: { reflect: true, type: String } };
+    return { hass: {}, _config: {}, _open: {}, theme: { reflect: true, type: String }, scheme: { reflect: true, type: String } };
   }
 
   constructor() {
     super();
     this._open = null;
     this.theme = "auto";
+    this.scheme = "dark";
+  }
+
+  // Orbit colour scheme: "mode" forces it, otherwise it follows Home Assistant
+  // (hass.themes.darkMode). If HA does not report it, keep the historical dark look.
+  _computeScheme() {
+    const m = this._config?.mode;
+    if (m === "dark" || m === "light") return m;
+    return this.hass?.themes?.darkMode === false ? "light" : "dark";
+  }
+
+  willUpdate(changed) {
+    if (changed.has("hass") || changed.has("_config")) {
+      const scheme = this._computeScheme();
+      if (scheme !== this.scheme) this.scheme = scheme;
+    }
   }
 
   setConfig(config) {
     const theme = THEMES.includes(config?.theme) ? config.theme : "auto";
+    const mode = MODES.includes(config?.mode) ? config.mode : "auto";
     this._config = {
       summary_entity: "sensor.subscriptions_total",
       show_paused: true,
@@ -39,6 +57,7 @@ class SubscriptionTrackerCard extends LitElement {
       show_budget: true,
       ...config,
       theme,
+      mode,
     };
     this.theme = theme;
   }
@@ -613,6 +632,27 @@ class SubscriptionTrackerCard extends LitElement {
         color: var(--_text);
         border-radius: var(--_radius);
         font-family: var(--_font);
+      }
+      /* Orbit, light scheme: used when Home Assistant is in light mode (or mode: light). */
+      :host([theme="orbit"][scheme="light"]) {
+        --stc-bg: #ffffff;
+        --stc-surface: #f4f6fa;
+        --stc-border: #e3e8f0;
+        --stc-border-strong: #d3dae6;
+        --stc-track: #e6eaf2;
+        --stc-text: #0f1623;
+        --stc-muted: #55607a;
+        --stc-accent: #0b7a91;
+        --stc-ok: #1b7f45;
+        --stc-warn: #935600;
+        --stc-danger: #c1282f;
+        --stc-info: #1f6fc4;
+        --stc-palette-1: #d9363e;
+        --stc-palette-2: #a66f00;
+        --stc-palette-3: #1b7f45;
+        --stc-palette-4: #1f6fc4;
+        --stc-palette-5: #6d5bd0;
+        --stc-palette-6: #0b7a91;
       }
       :host([theme="orbit"]) ha-card { border: 1px solid var(--_border); }
 
