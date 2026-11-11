@@ -4,7 +4,7 @@ const LitElement =
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
-const CARD_VERSION = "0.1.4";
+const CARD_VERSION = "0.2.0";
 const THEMES = ["auto", "orbit"];
 const MODES = ["auto", "dark", "light"];
 const PALETTE_SIZE = 6;
@@ -71,6 +71,93 @@ class SubscriptionTrackerCard extends LitElement {
     return { summary_entity: "sensor.subscriptions_total" };
   }
 
+  // Visual editor: HA renders this schema with its own controls (static getConfigForm,
+  // https://contributors.home-assistant.io/frontend/custom-ui/card-editor/).
+  // Labels are Italian like the rest of the card until the card is localized.
+  static getConfigForm() {
+    const filter = { domain: "sensor", integration: "subscription_tracker" };
+    const boolean = (name) => ({ name, default: true, selector: { boolean: {} } });
+    const labels = {
+      summary_entity: "Sensore di riepilogo",
+      entities: "Abbonamenti (opzionale)",
+      theme: "Stile",
+      mode: "Schema colori Orbit",
+      show_timeline: "Mostra la timeline dei rinnovi",
+      show_budget: "Mostra il budget",
+      show_paused: "Mostra gli abbonamenti in pausa",
+      show_tip: "Mostra il suggerimento",
+    };
+    const helpers = {
+      summary_entity: "Il sensore «Subscriptions total» creato dall'integrazione.",
+      entities: "Lascia vuoto per includere automaticamente tutti gli abbonamenti.",
+      mode: "Solo con lo stile Orbit. Automatico segue il tema chiaro o scuro di Home Assistant.",
+    };
+    return {
+      schema: [
+        { name: "summary_entity", default: "sensor.subscriptions_total", selector: { entity: { filter } } },
+        { name: "entities", selector: { entity: { multiple: true, filter } } },
+        {
+          type: "grid",
+          name: "",
+          schema: [
+            {
+              name: "theme",
+              default: "auto",
+              selector: {
+                select: {
+                  mode: "dropdown",
+                  options: [
+                    { value: "auto", label: "Tema di Home Assistant" },
+                    { value: "orbit", label: "Orbit" },
+                  ],
+                },
+              },
+            },
+            {
+              name: "mode",
+              default: "auto",
+              visible: { field: "theme", value: "orbit" },
+              selector: {
+                select: {
+                  mode: "dropdown",
+                  options: [
+                    { value: "auto", label: "Automatico" },
+                    { value: "dark", label: "Scuro" },
+                    { value: "light", label: "Chiaro" },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+        {
+          type: "grid",
+          name: "",
+          schema: ["show_timeline", "show_budget", "show_paused", "show_tip"].map(boolean),
+        },
+      ],
+      computeLabel: (schema) => labels[schema.name],
+      computeHelper: (schema) => helpers[schema.name],
+      // Throwing disables the visual editor (YAML the form cannot represent).
+      assertConfig: (config) => {
+        if (config.entities !== undefined && !(Array.isArray(config.entities) && config.entities.every((e) => typeof e === "string"))) {
+          throw new Error("entities deve essere un elenco di entità.");
+        }
+        if (config.theme !== undefined && !THEMES.includes(config.theme)) {
+          throw new Error("theme non supportato dall'editor visuale.");
+        }
+        if (config.mode !== undefined && !MODES.includes(config.mode)) {
+          throw new Error("mode non supportato dall'editor visuale.");
+        }
+        for (const k of ["show_timeline", "show_budget", "show_paused", "show_tip"]) {
+          if (config[k] !== undefined && typeof config[k] !== "boolean") {
+            throw new Error(`${k} deve essere vero o falso.`);
+          }
+        }
+      },
+    };
+  }
+
   /* ---------- data ---------- */
 
   get _summary() {
@@ -80,16 +167,20 @@ class SubscriptionTrackerCard extends LitElement {
   _subscriptions() {
     // If the user lists entities explicitly we use them, otherwise we take
     // every sensor that exposes the integration's attributes.
-    const ids =
-      this._config.entities ||
-      Object.keys(this.hass.states).filter((id) => {
+    // An empty list (what the visual editor writes when the field is cleared) means
+    // auto-discovery too. The summary sensor is never a subscription.
+    const manual = Array.isArray(this._config.entities) && this._config.entities.length > 0;
+    const ids = (manual
+      ? this._config.entities
+      : Object.keys(this.hass.states).filter((id) => {
         const s = this.hass.states[id];
         return (
           id.startsWith("sensor.") &&
           s.attributes.display_name !== undefined &&
           s.attributes.billing_cycle !== undefined
         );
-      });
+      })
+    ).filter((id) => id !== this._config.summary_entity);
 
     return ids
       .map((id) => this.hass.states[id])
@@ -846,6 +937,7 @@ window.customCards.push({
   name: "Subscription Tracker Card",
   description: "Elenco abbonamenti con spesa ricorrente, budget, timeline dei rinnovi e storico prezzi.",
   preview: true,
+  documentationURL: "https://github.com/ivp-arch/ha-subscription-tracker-card",
 });
 
 console.info(

@@ -33,6 +33,8 @@ Minimal — the card finds all subscriptions by itself:
 type: custom:subscription-tracker-card
 ```
 
+All options can be set from the visual editor (card menu → Edit, requires a recent Home Assistant frontend); the YAML below is the same configuration.
+
 Full:
 
 ```yaml
@@ -53,7 +55,7 @@ entities:
 | Option | Default | Description |
 |---|---|---|
 | `summary_entity` | `sensor.subscriptions_total` | Summary sensor of the integration |
-| `entities` | auto | Explicit list. If omitted, the card detects the integration's sensors by itself |
+| `entities` | auto | Explicit list. If omitted or empty, the card detects the integration's sensors by itself |
 | `show_paused` | `true` | Show paused subscriptions at the bottom, dimmed |
 | `show_tip` | `true` | Show the contextual tip at the bottom of the card |
 | `show_timeline` | `true` | Show the renewals of the next 30 days (`upcoming` attribute of the summary) |
