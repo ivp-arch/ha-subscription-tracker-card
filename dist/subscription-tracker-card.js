@@ -4,7 +4,7 @@ const LitElement =
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
-const CARD_VERSION = "0.3.1";
+const CARD_VERSION = "0.3.2";
 const THEMES = ["auto", "orbit"];
 const MODES = ["auto", "dark", "light"];
 const PALETTE_SIZE = 6;
@@ -264,7 +264,7 @@ class SubscriptionTrackerCard extends LitElement {
   }
 
   _cycleLabel(cycle) {
-    return { monthly: "mensile", quarterly: "trimestrale", yearly: "annuale" }[cycle] || cycle;
+    return { monthly: "mensile", quarterly: "trimestrale", semiannual: "semestrale", yearly: "annuale" }[cycle] || cycle;
   }
 
   _urgency(days) {
