@@ -1,10 +1,11 @@
-const LitElement =
-  customElements.get("ha-panel-lovelace") &&
-  Object.getPrototypeOf(customElements.get("ha-panel-lovelace"));
+// Home Assistant may load the resource before the Lovelace panel is defined (e.g. a
+// page opened outside a dashboard): wait for it. Needs the resource as a JavaScript module.
+await customElements.whenDefined("ha-panel-lovelace");
+const LitElement = Object.getPrototypeOf(customElements.get("ha-panel-lovelace"));
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
-const CARD_VERSION = "0.3.2";
+const CARD_VERSION = "0.3.3";
 const THEMES = ["auto", "orbit"];
 const MODES = ["auto", "dark", "light"];
 const PALETTE_SIZE = 6;
